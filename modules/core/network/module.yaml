@@ -7,5 +7,8 @@ description: Shared networking for Cloud Stack.
 stateful: false
 
 requires: []
-
 provides: []
+secrets: []
+networks: []
+storage: []
+images: []

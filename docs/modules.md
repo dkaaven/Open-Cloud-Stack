@@ -8,12 +8,6 @@ Modules are the deployable building blocks of Cloud Stack.
 modules/<category>/<module>/
 ```
 
-Example:
-
-```text
-modules/workplace/nextcloud/
-```
-
 ## Required files
 
 Every module must contain:
@@ -25,11 +19,7 @@ README.md
 
 `module.yaml` defines the machine-readable module contract.
 
-`README.md` contains module-specific technical documentation.
-
 ## Optional directories
-
-A module may contain:
 
 ```text
 quadlet/    Quadlet definitions
@@ -43,23 +33,22 @@ Only directories used by the module should exist.
 
 ## Dependencies
 
-Module dependencies are declared in `module.yaml`.
+Dependencies are declared in `module.yaml`.
 
-Example:
+## Networks
 
-```yaml
-requires:
-  - core/network
-  - core/traefik
-  - data/postgres
-```
+Network membership is declared in `module.yaml`.
 
-Profiles must not duplicate transitive dependencies.
+## Storage
+
+Persistent storage is declared in `module.yaml`.
+
+Storage marked `backup: true` requires backup and restore support.
 
 ## Rules
 
-* Modules must be independently understandable.
-* Modules must not contain deployment-specific secrets.
-* Persistent state must be explicit.
-* Module resources should use the `cloudstack-` namespace where applicable.
-* Architectural decisions belong in ADRs.
+- Modules must be independently understandable.
+- Deployment-specific secrets must not be stored in modules.
+- Persistent state must be explicit.
+- Network membership must be explicit.
+- Architectural decisions belong in ADRs.

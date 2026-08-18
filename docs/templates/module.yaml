@@ -9,3 +9,11 @@ stateful: false
 requires: []
 
 provides: []
+
+secrets: []
+
+networks: []
+
+storage: []
+
+images: []

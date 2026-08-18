@@ -1,4 +1,4 @@
-# ENV
+# Environment folders
 .venv
 .git
 
@@ -6,11 +6,13 @@
 uv.lock
 __pycache__
 
-#env
-*.env
-
-
-# Dev
+# Development files
 *.txt
 get_*.sh
 
+# Deployment configuration
+config/*.env
+
+# Secret values
+secrets/
+**/secrets/

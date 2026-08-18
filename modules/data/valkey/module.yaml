@@ -10,3 +10,13 @@ requires:
   - core/network
 
 provides: []
+secrets: []
+
+networks:
+  - data
+
+storage:
+  - id: data
+    backup: false
+
+images: []

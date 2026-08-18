@@ -1,0 +1,6 @@
+[Unit]
+Description=Cloud Stack edge network
+
+[Network]
+NetworkName=cloudstack-edge
+Driver=bridge

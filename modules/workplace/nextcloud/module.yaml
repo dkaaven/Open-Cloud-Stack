@@ -13,3 +13,14 @@ requires:
   - data/valkey
 
 provides: []
+secrets: []
+
+networks:
+  - edge
+  - data
+
+storage:
+  - id: data
+    backup: true
+
+images: []

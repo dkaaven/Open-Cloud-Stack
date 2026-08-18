@@ -1,0 +1,7 @@
+[Unit]
+Description=Cloud Stack data network
+
+[Network]
+NetworkName=cloudstack-data
+Driver=bridge
+Internal=true
