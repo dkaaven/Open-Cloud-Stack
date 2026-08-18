@@ -1,0 +1,11 @@
+schema: 1
+
+id: category/module
+name: Module Name
+description: Short description.
+
+stateful: false
+
+requires: []
+
+provides: []

@@ -1,0 +1,16 @@
+# ENV
+.venv
+.git
+
+# Python
+uv.lock
+__pycache__
+
+#env
+*.env
+
+
+# Dev
+*.txt
+get_*.sh
+

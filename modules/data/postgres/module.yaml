@@ -1,0 +1,12 @@
+schema: 1
+
+id: data/postgres
+name: PostgreSQL
+description: Shared PostgreSQL database service.
+
+stateful: true
+
+requires:
+  - core/network
+
+provides: []

@@ -1,0 +1,12 @@
+schema: 1
+
+id: core/traefik
+name: Traefik
+description: Reverse proxy and ingress for Cloud Stack.
+
+stateful: true
+
+requires:
+  - core/network
+
+provides: []

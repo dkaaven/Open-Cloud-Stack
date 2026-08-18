@@ -1,0 +1,15 @@
+schema: 1
+
+id: workplace/nextcloud
+name: Nextcloud
+description: File collaboration and storage platform.
+
+stateful: true
+
+requires:
+  - core/network
+  - core/traefik
+  - data/postgres
+  - data/valkey
+
+provides: []

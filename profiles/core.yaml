@@ -1,0 +1,6 @@
+schema: 1
+
+id: core
+
+modules:
+  - core/traefik

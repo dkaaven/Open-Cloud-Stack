@@ -1,0 +1,12 @@
+schema: 1
+
+id: data/valkey
+name: Valkey
+description: Shared Valkey service.
+
+stateful: true
+
+requires:
+  - core/network
+
+provides: []

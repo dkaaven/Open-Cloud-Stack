@@ -1,0 +1,11 @@
+schema: 1
+
+id: core/network
+name: Cloud Stack Network
+description: Shared networking for Cloud Stack.
+
+stateful: false
+
+requires: []
+
+provides: []
