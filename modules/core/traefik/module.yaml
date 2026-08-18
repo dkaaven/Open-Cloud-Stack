@@ -4,7 +4,7 @@ id: core/traefik
 name: Traefik
 description: Reverse proxy and ingress for Cloud Stack.
 
-stateful: true
+stateful: false
 
 requires:
   - core/network
@@ -15,8 +15,9 @@ secrets: []
 networks:
   - edge
 
-storage:
-  - id: acme
-    backup: false
+storage: []
 
-images: []
+images:
+  - id: proxy
+    version: "3.7.10"
+    reference: docker.io/library/traefik@sha256:9c3b91d5fb7770853ca5c1124a23c34bf2d9b47ffaebeab2614cbaf410dcb2ac
