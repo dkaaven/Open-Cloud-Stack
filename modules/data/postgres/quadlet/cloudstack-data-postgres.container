@@ -1,0 +1,25 @@
+[Unit]
+Description=Cloud Stack PostgreSQL
+
+[Container]
+ContainerName=cloudstack-data-postgres
+Image=docker.io/library/postgres@sha256:697c180dbf244d3ce4a8f4cbc0156cde840af055c1bf8b76aebe422a4822086f
+
+Network=cloudstack-data.network
+Volume=cloudstack-data-postgres-data.volume:/var/lib/postgresql
+
+Secret=postgres-superuser-password,target=postgres-superuser-password
+Environment=POSTGRES_PASSWORD_FILE=/run/secrets/postgres-superuser-password
+Environment=POSTGRES_INITDB_ARGS=--data-checksums
+
+HealthCmd=pg_isready -U postgres -d postgres
+HealthInterval=30s
+HealthRetries=5
+HealthStartPeriod=30s
+
+NoNewPrivileges=true
+
+[Service]
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=180

@@ -10,7 +10,9 @@ requires:
   - core/network
 
 provides: []
-secrets: []
+
+secrets:
+  - postgres-superuser-password
 
 networks:
   - data
@@ -19,4 +21,7 @@ storage:
   - id: data
     backup: true
 
-images: []
+images:
+  - id: database
+    version: "18.6-alpine3.23"
+    reference: docker.io/library/postgres@sha256:697c180dbf244d3ce4a8f4cbc0156cde840af055c1bf8b76aebe422a4822086f

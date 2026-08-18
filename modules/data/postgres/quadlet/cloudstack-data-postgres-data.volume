@@ -1,0 +1,7 @@
+[Unit]
+Description=Cloud Stack PostgreSQL data
+
+[Volume]
+VolumeName=cloudstack-data-postgres-data
+Label=io.cloudstack.module=data/postgres
+Label=io.cloudstack.storage=data
