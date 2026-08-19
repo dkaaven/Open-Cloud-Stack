@@ -4,7 +4,7 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 VERSION="unknown"
-[[ -f "${ROOT}/VERSION" ]] && VERSION="$(<"${ROOT}/VERSION)"
+[[ -f "${ROOT}/VERSION" ]] && VERSION="$(cat "${ROOT}/VERSION")"
 
 value_or_unknown() {
     local value="$1"
