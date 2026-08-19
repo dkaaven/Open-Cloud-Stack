@@ -3,13 +3,13 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+readonly RUNTIME_ROOT="/etc/cloudstack/runtime"
+readonly PROFILE_FILE="${RUNTIME_ROOT}/profile"
+readonly MODULE_MANIFEST="${RUNTIME_ROOT}/modules"
+readonly UNIT_MANIFEST="${RUNTIME_ROOT}/units"
+
 STACK_VERSION="unknown"
 [[ -f "${ROOT}/VERSION" ]] && STACK_VERSION="$(cat "${ROOT}/VERSION")"
-
-value_or_unknown() {
-    local value="$1"
-    [[ -n "${value}" ]] && printf '%s' "${value}" || printf 'unknown'
-}
 
 service_status() {
     local unit="$1"
@@ -25,7 +25,9 @@ service_status() {
 network_status() {
     local network="$1"
 
-    if podman network exists "${network}" 2>/dev/null; then
+    if ! command -v podman >/dev/null 2>&1; then
+        printf 'podman unavailable'
+    elif podman network exists "${network}" 2>/dev/null; then
         printf 'present'
     else
         printf 'not installed'
@@ -63,32 +65,37 @@ printf '\nStack\n'
 printf '%s\n' '-----'
 printf 'Version:          %s\n' "${STACK_VERSION}"
 printf 'Repository:       %s\n' "${ROOT}"
+printf 'Profile:          %s\n' \
+    "$([[ -f "${PROFILE_FILE}" ]] && cat "${PROFILE_FILE}" || printf 'not installed')"
 printf 'Configuration:    /etc/cloudstack\n'
 printf 'Quadlets:         /etc/containers/systemd\n'
 printf 'State:            /var/lib/cloudstack\n'
+
+printf '\nModules\n'
+printf '%s\n' '-------'
+
+if [[ -s "${MODULE_MANIFEST}" ]]; then
+    cat "${MODULE_MANIFEST}"
+else
+    printf 'None\n'
+fi
 
 printf '\nNetworks\n'
 printf '%s\n' '--------'
 printf '%-24s %s\n' 'cloudstack-edge' "$(network_status cloudstack-edge)"
 printf '%-24s %s\n' 'cloudstack-data' "$(network_status cloudstack-data)"
 
-printf '\nServices\n'
-printf '%s\n' '--------'
-printf '%-34s %s\n' \
-    'Edge network' \
-    "$(service_status cloudstack-edge-network.service)"
+printf '\nUnits\n'
+printf '%s\n' '-----'
 
-printf '%-34s %s\n' \
-    'Data network' \
-    "$(service_status cloudstack-data-network.service)"
-
-printf '%-34s %s\n' \
-    'Traefik' \
-    "$(service_status cloudstack-core-traefik.service)"
-
-printf '%-34s %s\n' \
-    'PostgreSQL' \
-    "$(service_status cloudstack-data-postgres.service)"
+if [[ -s "${UNIT_MANIFEST}" ]]; then
+    while IFS= read -r unit; do
+        [[ -n "${unit}" ]] || continue
+        printf '%-44s %s\n' "${unit}" "$(service_status "${unit}")"
+    done < "${UNIT_MANIFEST}"
+else
+    printf 'None\n'
+fi
 
 printf '\nContainers\n'
 printf '%s\n' '----------'

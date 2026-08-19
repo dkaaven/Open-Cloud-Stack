@@ -63,7 +63,10 @@ def test_traefik_quadlet_contract():
     assert "Network=cloudstack-edge.network" in content
     assert "PublishPort=80:80" in content
     assert "PublishPort=443:443" in content
-    assert "Volume=/etc/cloudstack/traefik:/etc/traefik:ro" in content
+    assert (
+        "Volume=/etc/cloudstack/modules/core/traefik/config:/etc/traefik:ro"
+        in content
+    )
     assert "HealthCmd=traefik healthcheck" in content
     assert "NoNewPrivileges=true" in content
     assert "ReadOnly=true" in content

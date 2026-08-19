@@ -4,6 +4,7 @@ set -Eeuo pipefail
 readonly REPOSITORY="https://github.com/dkaaven/Open-Cloud-Stack.git"
 readonly INSTALL_DIR="/opt/open-cloud-stack"
 readonly BRANCH="${CLOUDSTACK_BRANCH:-main}"
+readonly PROFILE="${CLOUDSTACK_PROFILE:-core}"
 
 log() {
     printf '[cloudstack] %s\n' "$*"
@@ -30,11 +31,8 @@ fi
 # shellcheck disable=SC1091
 source /etc/os-release
 
-[[ "${ID:-}" == "debian" ]] ||
-    die "Debian is required."
-
-[[ "${VERSION_ID:-}" == "13" ]] ||
-    die "Debian 13 is required."
+[[ "${ID:-}" == "debian" ]] || die "Debian is required."
+[[ "${VERSION_ID:-}" == "13" ]] || die "Debian 13 is required."
 
 log "Installing bootstrap dependencies..."
 
@@ -63,6 +61,8 @@ else
         "${INSTALL_DIR}"
 fi
 
-log "Running host installer..."
+log "Preparing Podman runtime..."
+"${INSTALL_DIR}/runtime/install-podman.sh"
 
-exec "${INSTALL_DIR}/runtime/install-podman.sh"
+log "Installing Cloud Stack profile: ${PROFILE}"
+exec "${INSTALL_DIR}/runtime/install-stack.sh" --profile "${PROFILE}"

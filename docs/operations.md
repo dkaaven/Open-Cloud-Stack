@@ -1,43 +1,40 @@
 # Operations
 
-Cloud Stack lifecycle is managed through systemd and the runtime tooling.
+Cloud Stack lifecycle is managed through the runtime tooling and systemd.
 
-## Lifecycle
+## Install
 
-Core operations are:
+Bootstrap a clean Debian 13 host:
 
-```text
-install
-validate
-start
-stop
-restart
-status
-upgrade
-backup
-restore
-uninstall
+```bash
+curl -fsSL https://raw.githubusercontent.com/dkaaven/Open-Cloud-Stack/main/runtime/bootstrap.sh | bash
 ```
 
-## Runtime tooling
+The default profile is `core`.
 
-Runtime scripts and tooling live in:
+Install another profile:
 
-```text
-runtime/
+```bash
+./runtime/install-stack.sh --profile workplace
 ```
 
-They must operate on declared modules and profiles rather than contain service-specific configuration.
+## Status
 
-## systemd
+```bash
+./runtime/status.sh
+```
 
-systemd is the lifecycle authority for deployed Cloud Stack services.
+## Uninstall
 
-Quadlet-generated units must be managed through systemd.
+```bash
+./runtime/uninstall-stack.sh
+```
+
+Persistent volumes, secrets and `/var/lib/cloudstack` are preserved.
 
 ## Rules
 
-* Operations must be repeatable.
-* Failed operations should return a non-zero exit code.
-* Uninstall must not remove persistent data unless explicitly requested.
-* Stateful modules must provide documented backup and restore procedures.
+- Runtime operations require root.
+- Profiles determine installed modules.
+- Dependencies are resolved from `module.yaml`.
+- Failed operations return a non-zero exit code.

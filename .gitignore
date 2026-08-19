@@ -5,6 +5,7 @@
 # Python
 uv.lock
 __pycache__
+.pytest_cache
 
 # Development files
 *.txt

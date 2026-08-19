@@ -4,6 +4,28 @@ Cloud Stack is a modular, reproducible, Podman-based application platform for sm
 
 It provides an open-source alternative to common Microsoft 365 cloud capabilities, including collaboration, identity, endpoint management, security, mail, storage and office productivity.
 
+## Architecture
+
+Cloud Stack is built around:
+
+- **Modules** — deployable capabilities
+- **Profiles** — collections of modules
+- **Podman** — container runtime
+- **Quadlet** — container and resource definitions
+- **systemd** — service lifecycle
+
+Kubernetes is not required. Components should remain Kubernetes-portable where practical.
+
+## Principles
+
+- Modular
+- Reproducible
+- Secure by default
+- Standards based
+- Recoverable
+- Open source where practical
+- Simple to operate
+
 ## Installation
 
 Cloud Stack currently targets **Debian 13 (Trixie)**.
@@ -11,60 +33,21 @@ Cloud Stack currently targets **Debian 13 (Trixie)**.
 Run as root:
 
 ```bash
-apt-get update
-apt-upgrade
-apt-get install -y curl ca-certificates
+apt-get update && apt-get install -y curl ca-certificates
 
-curl -fsSL \
-  https://raw.githubusercontent.com/dkaaven/Open-Cloud-Stack/main/runtime/bootstrap.sh \
-  | bash
+curl -fsSL   https://raw.githubusercontent.com/dkaaven/Open-Cloud-Stack/main/runtime/bootstrap.sh   | bash
 ```
 
-The bootstrap installer downloads Cloud Stack, installs the required Podman runtime and prepares the host.
+The bootstrap installs the Podman runtime, downloads Cloud Stack and installs the default `core` profile.
 
 ### Proxmox LXC
 
-For an unprivileged Proxmox LXC, enable:
+Recommended baseline:
 
 ```text
 unprivileged=1
 features=nesting=1,keyctl=1
 ```
-
-
-### Proxmox LXC
-
-For an unprivileged Proxmox LXC, enable:
-
-```text
-unprivileged=1
-features=nesting=1,keyctl=1
-```
-
-Application installation is handled separately after the runtime has been prepared.
-
-
-## Architecture
-
-Cloud Stack is built around:
-
-* **Modules** — deployable capabilities
-* **Profiles** — collections of modules
-* **Podman** — container runtime
-* **Quadlet** — container and resource definitions
-* **systemd** — service lifecycle
-
-Kubernetes is not required. Components should remain Kubernetes-portable where practical.
-
-## Principles
-
-* Modular
-* Reproducible
-* Secure by default
-* Standards based
-* Recoverable
-* Open source where practical
-* Simple to operate
 
 ## Compliance
 

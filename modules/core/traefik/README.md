@@ -23,16 +23,10 @@ TLS may terminate at Traefik or at an upstream edge such as NetBird.
 
 ## Configuration
 
-Static configuration:
+Installed configuration:
 
 ```text
-/etc/cloudstack/traefik/traefik.yaml
-```
-
-Dynamic routing:
-
-```text
-/etc/cloudstack/traefik/dynamic/
+/etc/cloudstack/modules/core/traefik/config/
 ```
 
 Traefik uses the file provider. The Podman socket is not mounted.

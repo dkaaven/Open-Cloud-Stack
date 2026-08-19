@@ -1,58 +1,90 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-if (( EUID != 0 )); then
-    exec sudo "$0" "$@"
-fi
-
-QUADLET_ROOT="/etc/containers/systemd/cloudstack/core"
-CONFIG_ROOT="/etc/cloudstack/modules/core"
-RUNTIME_ROOT="/etc/cloudstack/runtime"
-
-TARGET_FILE="/etc/systemd/system/cloudstack-core.target"
-WORKLOAD_MANIFEST="$RUNTIME_ROOT/core.workloads"
-UNIT_MANIFEST="$RUNTIME_ROOT/core.units"
+readonly QUADLET_ROOT="/etc/containers/systemd/cloudstack"
+readonly CONFIG_ROOT="/etc/cloudstack/modules"
+readonly RUNTIME_ROOT="/etc/cloudstack/runtime"
+readonly TARGET_FILE="/etc/systemd/system/cloudstack.target"
+readonly WORKLOAD_MANIFEST="${RUNTIME_ROOT}/workloads"
 
 PURGE_CONFIG=false
 
-if [[ "${1:-}" == "--purge-config" ]]; then
-    PURGE_CONFIG=true
-fi
+log() {
+    printf '[cloudstack] %s\n' "$*"
+}
 
-echo "[cloudstack] Stopping Cloud Stack Core..."
+fail() {
+    printf '[cloudstack] ERROR: %s\n' "$*" >&2
+    exit 1
+}
 
-systemctl disable --now cloudstack-core.target 2>/dev/null || true
+usage() {
+    cat <<'EOF'
+Usage: uninstall-stack.sh [--purge-config]
 
-# Remove generated PartOf drop-ins.
-if [[ -f "$WORKLOAD_MANIFEST" ]]; then
-    while IFS= read -r unit; do
-        [[ -n "$unit" ]] || continue
+Persistent Podman volumes, secrets and /var/lib/cloudstack are preserved.
+EOF
+}
 
-        rm -f "/etc/systemd/system/${unit}.d/10-cloudstack-core.conf"
-        rmdir "/etc/systemd/system/${unit}.d" 2>/dev/null || true
-    done < "$WORKLOAD_MANIFEST"
-fi
+require_root() {
+    [[ "${EUID}" -eq 0 ]] || fail "Run this uninstaller as root."
+}
 
-echo "[cloudstack] Removing Quadlet definitions..."
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --purge-config)
+                PURGE_CONFIG=true
+                shift
+                ;;
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            *)
+                fail "Unknown argument: $1"
+                ;;
+        esac
+    done
+}
 
-rm -rf "$QUADLET_ROOT"
-rm -f "$TARGET_FILE"
-rm -f "$WORKLOAD_MANIFEST"
-rm -f "$UNIT_MANIFEST"
+main() {
+    parse_args "$@"
+    require_root
 
-rmdir "$RUNTIME_ROOT" 2>/dev/null || true
+    log "Stopping Cloud Stack..."
+    systemctl disable --now cloudstack.target >/dev/null 2>&1 || true
 
-if $PURGE_CONFIG; then
-    echo "[cloudstack] Removing Core configuration..."
-    rm -rf "$CONFIG_ROOT"
-else
-    echo "[cloudstack] Configuration preserved: $CONFIG_ROOT"
-fi
+    if [[ -f "${WORKLOAD_MANIFEST}" ]]; then
+        while IFS= read -r unit; do
+            [[ -n "${unit}" ]] || continue
 
-systemctl daemon-reload
-systemctl reset-failed >/dev/null 2>&1 || true
+            rm -f "/etc/systemd/system/${unit}.d/10-cloudstack.conf"
+            rmdir "/etc/systemd/system/${unit}.d" 2>/dev/null || true
+        done < "${WORKLOAD_MANIFEST}"
+    fi
 
-echo
-echo "Cloud Stack Core uninstalled."
-echo
-echo "Persistent Podman volumes and /var/lib/cloudstack were NOT deleted."
+    log "Removing installed Quadlet definitions..."
+    rm -rf "${QUADLET_ROOT}"
+    rm -f "${TARGET_FILE}"
+    rm -rf "${RUNTIME_ROOT}"
+
+    if ${PURGE_CONFIG}; then
+        log "Removing installed module configuration..."
+        rm -rf "${CONFIG_ROOT}"
+    else
+        log "Configuration preserved: ${CONFIG_ROOT}"
+    fi
+
+    systemctl daemon-reload
+    systemctl reset-failed >/dev/null 2>&1 || true
+
+    podman network rm cloudstack-edge >/dev/null 2>&1 || true
+    podman network rm cloudstack-data >/dev/null 2>&1 || true
+
+    printf '\n'
+    log "Cloud Stack uninstalled."
+    printf 'Persistent Podman volumes, secrets and /var/lib/cloudstack were NOT deleted.\n'
+}
+
+main "$@"

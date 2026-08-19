@@ -77,6 +77,8 @@ install_packages() {
         jq \
         keyutils \
         openssl \
+        python3 \
+        python3-yaml \
         rsync \
         fuse-overlayfs
 
@@ -187,9 +189,11 @@ show_summary() {
     printf '\n'
     log "Host bootstrap complete."
     printf '\n'
-    printf 'OS:                 %s\n' "$PRETTY_NAME"
+    printf 'OS:                 %s\n' "${PRETTY_NAME}"
     printf 'Virtualization:     %s\n' "${VIRT:-none}"
     printf 'Podman:             %s\n' "$(podman --version)"
+    printf 'Podman mode:        %s\n' \
+        "$(podman info --format '{{if .Host.Security.Rootless}}rootless{{else}}rootful{{end}}')"
     printf 'Storage driver:     %s\n' "$(podman info --format '{{.Store.GraphDriverName}}')"
     printf 'cgroup:             %s\n' "$(podman info --format '{{.Host.CgroupsVersion}}')"
     printf 'Quadlets:           %s\n' "${QUADLET_DIR}"
