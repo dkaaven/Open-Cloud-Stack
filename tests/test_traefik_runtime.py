@@ -44,8 +44,8 @@ def test_traefik_manifest_runtime_contract():
 def test_traefik_static_configuration():
     config = load_yaml(CONFIG)
 
-    assert config["entryPoints"]["web"]["address"] == ":80"
-    assert config["entryPoints"]["websecure"]["address"] == ":443"
+    assert config["entryPoints"]["web"]["address"] == ":8000"
+    assert config["entryPoints"]["websecure"]["address"] == ":8443"
     assert config["entryPoints"]["health"]["address"] == ":8080"
 
     assert config["providers"]["file"]["directory"] == "/etc/traefik/dynamic"
@@ -57,19 +57,29 @@ def test_traefik_static_configuration():
 
 def test_traefik_quadlet_contract():
     content = QUADLET.read_text(encoding="utf-8")
+    lines = set(content.splitlines())
 
-    assert f"Image={IMAGE}" in content
-    assert "ContainerName=cloudstack-core-traefik" in content
-    assert "Network=cloudstack-edge.network" in content
-    assert "PublishPort=80:80" in content
-    assert "PublishPort=443:443" in content
+    assert f"Image={IMAGE}" in lines
+    assert "ContainerName=cloudstack-core-traefik" in lines
+    assert "Network=cloudstack-edge.network" in lines
+
+    assert "PublishPort=80:8000" in lines
+    assert "PublishPort=443:8443" in lines
+
     assert (
         "Volume=/etc/cloudstack/modules/core/traefik/config:/etc/traefik:ro"
-        in content
+        in lines
     )
-    assert "HealthCmd=traefik healthcheck" in content
-    assert "NoNewPrivileges=true" in content
-    assert "ReadOnly=true" in content
+
+    assert "User=65532" in lines
+    assert "Group=65532" in lines
+
+    assert "HealthCmd=traefik healthcheck" in lines
+    assert "NoNewPrivileges=true" in lines
+    assert "ReadOnly=true" in lines
+    assert "DropCapability=ALL" in lines
+
+    assert not any(line.startswith("AddCapability=") for line in lines)
 
     assert "podman.sock" not in content
     assert "docker.sock" not in content
@@ -102,6 +112,7 @@ def test_traefik_quadlet_generates_systemd_unit(tmp_path: Path):
     assert "cloudstack-core-traefik.service" in output
     assert "cloudstack-edge-network.service" in output
     assert IMAGE in output
+
     assert "--network cloudstack-edge" in output
-    assert "--publish 80:80" in output
-    assert "--publish 443:443" in output
+    assert "--publish 80:8000" in output
+    assert "--publish 443:8443" in output

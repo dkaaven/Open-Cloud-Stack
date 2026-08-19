@@ -4,10 +4,10 @@ global:
 
 entryPoints:
   web:
-    address: ":80"
+    address: ":8000"
 
   websecure:
-    address: ":443"
+    address: ":8443"
 
   health:
     address: ":8080"
