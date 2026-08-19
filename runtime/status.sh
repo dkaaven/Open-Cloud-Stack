@@ -6,7 +6,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly RUNTIME_ROOT="/etc/cloudstack/runtime"
 readonly PROFILE_FILE="${RUNTIME_ROOT}/profile"
 readonly MODULE_MANIFEST="${RUNTIME_ROOT}/modules"
-readonly UNIT_MANIFEST="${RUNTIME_ROOT}/units"
+readonly RESOURCE_MANIFEST="${RUNTIME_ROOT}/resources"
+readonly WORKLOAD_MANIFEST="${RUNTIME_ROOT}/workloads"
 
 STACK_VERSION="unknown"
 [[ -f "${ROOT}/VERSION" ]] && STACK_VERSION="$(cat "${ROOT}/VERSION")"
@@ -32,6 +33,20 @@ network_status() {
     else
         printf 'not installed'
     fi
+}
+
+print_unit_manifest() {
+    local manifest="$1"
+
+    if [[ ! -s "${manifest}" ]]; then
+        printf 'None\n'
+        return
+    fi
+
+    while IFS= read -r unit; do
+        [[ -n "${unit}" ]] || continue
+        printf '%-44s %s\n' "${unit}" "$(service_status "${unit}")"
+    done < "${manifest}"
 }
 
 printf 'Cloud Stack\n'
@@ -85,17 +100,13 @@ printf '%s\n' '--------'
 printf '%-24s %s\n' 'cloudstack-edge' "$(network_status cloudstack-edge)"
 printf '%-24s %s\n' 'cloudstack-data' "$(network_status cloudstack-data)"
 
-printf '\nUnits\n'
-printf '%s\n' '-----'
+printf '\nResources\n'
+printf '%s\n' '---------'
+print_unit_manifest "${RESOURCE_MANIFEST}"
 
-if [[ -s "${UNIT_MANIFEST}" ]]; then
-    while IFS= read -r unit; do
-        [[ -n "${unit}" ]] || continue
-        printf '%-44s %s\n' "${unit}" "$(service_status "${unit}")"
-    done < "${UNIT_MANIFEST}"
-else
-    printf 'None\n'
-fi
+printf '\nWorkloads\n'
+printf '%s\n' '---------'
+print_unit_manifest "${WORKLOAD_MANIFEST}"
 
 printf '\nContainers\n'
 printf '%s\n' '----------'

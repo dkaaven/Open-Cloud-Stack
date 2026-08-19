@@ -45,3 +45,48 @@ def test_uninstall_preserves_persistent_data():
 
     assert "/var/lib/cloudstack were NOT deleted" in content
     assert "podman volume rm" not in content
+
+
+def test_installer_tracks_resources_separately_from_workloads():
+    content = INSTALL.read_text(encoding="utf-8")
+
+    assert 'RESOURCE_MANIFEST="${RUNTIME_ROOT}/resources"' in content
+    assert 'WORKLOAD_MANIFEST="${RUNTIME_ROOT}/workloads"' in content
+
+    assert "*.network|*.volume)" in content
+    assert '>> "${TMP_RESOURCES}"' in content
+
+    assert "*.container|*.pod)" in content
+    assert '>> "${TMP_WORKLOADS}"' in content
+
+
+def test_installer_reconciles_resources_after_daemon_reload():
+    content = INSTALL.read_text(encoding="utf-8")
+
+    daemon_reload = content.index("systemctl daemon-reload")
+    validate = content.index("validate_units", daemon_reload)
+    reconcile = content.index("reconcile_resources", validate)
+    start = content.index("systemctl start cloudstack.target", reconcile)
+
+    assert daemon_reload < validate < reconcile < start
+
+
+def test_resource_reconciliation_restarts_each_resource():
+    content = INSTALL.read_text(encoding="utf-8")
+
+    start = content.index("reconcile_resources()")
+    end = content.index("\n}\n\nmain()", start)
+    function = content[start:end]
+
+    assert 'systemctl restart "${unit}"' in function
+    assert 'systemctl is-active --quiet "${unit}"' in function
+    assert "Resource reconciliation failed" in function
+
+
+def test_no_start_still_reconciles_resources():
+    content = INSTALL.read_text(encoding="utf-8")
+
+    reconcile = content.index("reconcile_resources", content.index("systemctl daemon-reload"))
+    no_start = content.index("if ${START_STACK}; then", reconcile)
+
+    assert reconcile < no_start

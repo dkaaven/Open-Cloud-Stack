@@ -17,6 +17,7 @@ readonly TARGET_FILE="/etc/systemd/system/cloudstack.target"
 readonly PROFILE_FILE="${RUNTIME_ROOT}/profile"
 readonly MODULE_MANIFEST="${RUNTIME_ROOT}/modules"
 readonly UNIT_MANIFEST="${RUNTIME_ROOT}/units"
+readonly RESOURCE_MANIFEST="${RUNTIME_ROOT}/resources"
 readonly WORKLOAD_MANIFEST="${RUNTIME_ROOT}/workloads"
 
 PROFILE="core"
@@ -37,7 +38,7 @@ Usage: install-stack.sh [--profile <profile>] [--no-start]
 
 Options:
   --profile <profile>  Profile to install. Default: core
-  --no-start           Install and validate without enabling/starting the stack
+  --no-start           Install and validate without enabling/starting workloads
 EOF
 }
 
@@ -118,9 +119,8 @@ prepare_secrets() {
 
         local source="${SECRETS_ROOT}/${secret}"
 
-        [[ -f "${source}" ]] || {
+        [[ -f "${source}" ]] || \
             fail "Required secret is missing: ${source}"
-        }
 
         if podman secret inspect "${secret}" >/dev/null 2>&1; then
             log "Podman secret already exists: ${secret}"
@@ -182,6 +182,9 @@ install_module() {
             printf '%s\n' "${unit}" >> "${TMP_UNITS}"
 
             case "${file}" in
+                *.network|*.volume)
+                    printf '%s\n' "${unit}" >> "${TMP_RESOURCES}"
+                    ;;
                 *.container|*.pod)
                     printf '%s\n' "${unit}" >> "${TMP_WORKLOADS}"
                     ;;
@@ -256,6 +259,28 @@ validate_units() {
     (( failed == 0 )) || fail "One or more Quadlets failed to generate."
 }
 
+reconcile_resources() {
+    local unit
+
+    [[ -s "${RESOURCE_MANIFEST}" ]] || return 0
+
+    log "Reconciling Podman resources..."
+
+    while IFS= read -r unit; do
+        [[ -n "${unit}" ]] || continue
+
+        log "Reconciling resource: ${unit}"
+
+        if ! systemctl restart "${unit}"; then
+            fail "Resource reconciliation failed: ${unit}"
+        fi
+
+        if ! systemctl is-active --quiet "${unit}"; then
+            fail "Resource unit is not active after reconciliation: ${unit}"
+        fi
+    done < "${RESOURCE_MANIFEST}"
+}
+
 main() {
     parse_args "$@"
     require_root
@@ -275,8 +300,8 @@ main() {
     log "Repository: ${REPO_ROOT}"
 
     if systemctl cat cloudstack.target >/dev/null 2>&1; then
-        log "Stopping existing Cloud Stack target..."
-        systemctl disable --now cloudstack.target >/dev/null 2>&1 || true
+        log "Stopping existing Cloud Stack workloads..."
+        systemctl stop cloudstack.target >/dev/null 2>&1 || true
     fi
 
     remove_old_workload_dropins
@@ -289,9 +314,10 @@ main() {
         "${SECRETS_ROOT}"
 
     TMP_UNITS="$(mktemp)"
+    TMP_RESOURCES="$(mktemp)"
     TMP_WORKLOADS="$(mktemp)"
-    readonly TMP_UNITS TMP_WORKLOADS
-    trap 'rm -f "${TMP_UNITS:-}" "${TMP_WORKLOADS:-}"' EXIT
+    readonly TMP_UNITS TMP_RESOURCES TMP_WORKLOADS
+    trap 'rm -f "${TMP_UNITS:-}" "${TMP_RESOURCES:-}" "${TMP_WORKLOADS:-}"' EXIT
 
     : > "${MODULE_MANIFEST}"
 
@@ -304,6 +330,7 @@ main() {
     prepare_secrets
 
     sort -u "${TMP_UNITS}" > "${UNIT_MANIFEST}"
+    sort -u "${TMP_RESOURCES}" > "${RESOURCE_MANIFEST}"
     sort -u "${TMP_WORKLOADS}" > "${WORKLOAD_MANIFEST}"
     printf '%s\n' "${PROFILE}" > "${PROFILE_FILE}"
 
@@ -314,10 +341,14 @@ main() {
     systemctl daemon-reload
 
     validate_units
+    reconcile_resources
 
     if ${START_STACK}; then
         log "Enabling and starting Cloud Stack..."
-        systemctl enable --now cloudstack.target
+        systemctl enable cloudstack.target >/dev/null 2>&1 || true
+        systemctl start cloudstack.target
+    else
+        log "Workload start skipped (--no-start)."
     fi
 
     printf '\n'
