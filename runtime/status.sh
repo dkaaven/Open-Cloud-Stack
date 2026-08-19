@@ -3,8 +3,8 @@ set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-VERSION="unknown"
-[[ -f "${ROOT}/VERSION" ]] && VERSION="$(cat "${ROOT}/VERSION")"
+STACK_VERSION="unknown"
+[[ -f "${ROOT}/VERSION" ]] && STACK_VERSION="$(cat "${ROOT}/VERSION")"
 
 value_or_unknown() {
     local value="$1"
@@ -61,7 +61,7 @@ fi
 
 printf '\nStack\n'
 printf '%s\n' '-----'
-printf 'Version:          %s\n' "${VERSION}"
+printf 'Version:          %s\n' "${STACK_VERSION}"
 printf 'Repository:       %s\n' "${ROOT}"
 printf 'Configuration:    /etc/cloudstack\n'
 printf 'Quadlets:         /etc/containers/systemd\n'
@@ -96,12 +96,13 @@ printf '%s\n' '----------'
 containers="$(
     podman ps -a \
         --filter 'name=cloudstack-' \
-        --format 'table {{.Names}}\t{{.Status}}' \
+        --format '{{.Names}}\t{{.Status}}' \
         2>/dev/null || true
 )"
 
 if [[ -n "${containers}" ]]; then
-    printf '%s\n' "${containers}"
+    printf '%-34s %s\n' 'NAME' 'STATUS'
+    printf '%b\n' "${containers}"
 else
     printf 'None\n'
 fi
