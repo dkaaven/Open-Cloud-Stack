@@ -70,6 +70,7 @@ install_packages() {
     log "Installing runtime packages..."
     apt-get install -y --no-install-recommends \
         podman \
+        aardvark-dns \
         crun \
         ca-certificates \
         curl \

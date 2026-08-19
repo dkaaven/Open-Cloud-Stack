@@ -45,3 +45,10 @@ def test_install_podman_tests_nested_resources():
 
     assert "podman network create cloudstack-install-test" in content
     assert "podman volume create cloudstack-install-test" in content
+
+
+def test_installer_installs_aardvark_dns():
+    installer = ROOT / "runtime" / "install-podman.sh"
+    content = installer.read_text(encoding="utf-8")
+
+    assert "aardvark-dns" in content
