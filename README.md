@@ -11,7 +11,13 @@ Cloud Stack currently targets **Debian 13 (Trixie)**.
 Run as root:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/dkaaven/Open-Cloud-Stack/main/runtime/bootstrap.sh | sudo bash
+apt-get update
+apt-upgrade
+apt-get install -y curl ca-certificates
+
+curl -fsSL \
+  https://raw.githubusercontent.com/dkaaven/Open-Cloud-Stack/main/runtime/bootstrap.sh \
+  | bash
 ```
 
 The bootstrap installer downloads Cloud Stack, installs the required Podman runtime and prepares the host.

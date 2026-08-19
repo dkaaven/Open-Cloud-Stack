@@ -1,95 +1,123 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-if (( EUID != 0 )); then
-    exec sudo "$0" "$@"
-fi
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-RUNTIME_ROOT="/etc/cloudstack/runtime"
-UNIT_MANIFEST="$RUNTIME_ROOT/core.units"
-WORKLOAD_MANIFEST="$RUNTIME_ROOT/core.workloads"
-TARGET="cloudstack-core.target"
+VERSION="unknown"
+[[ -f "${ROOT}/VERSION" ]] && VERSION="$(<"${ROOT}/VERSION)"
 
-echo "Cloud Stack"
-echo "==========="
-echo
+value_or_unknown() {
+    local value="$1"
+    [[ -n "${value}" ]] && printf '%s' "${value}" || printf 'unknown'
+}
 
-if [[ ! -f "$UNIT_MANIFEST" ]]; then
-    echo "Status: NOT INSTALLED"
-    echo
-    echo "Run:"
-    echo "  sudo ./scripts/install-stack.sh"
-    exit 1
-fi
+service_status() {
+    local unit="$1"
 
-TARGET_STATE="$(systemctl is-active "$TARGET" 2>/dev/null || true)"
-TARGET_ENABLED="$(systemctl is-enabled "$TARGET" 2>/dev/null || true)"
-
-printf "%-18s %s\n" "Core:" "$TARGET_STATE"
-printf "%-18s %s\n" "Boot:" "$TARGET_ENABLED"
-printf "%-18s %s\n" "Podman:" "$(podman --version)"
-echo
-
-echo "Units"
-echo "-----"
-
-FAILED=0
-
-while IFS= read -r unit; do
-    [[ -n "$unit" ]] || continue
-
-    state="$(systemctl is-active "$unit" 2>/dev/null || true)"
-    substate="$(systemctl show "$unit" -p SubState --value 2>/dev/null || true)"
-
-    printf "%-42s %-12s %s\n" \
-        "$unit" \
-        "${state:-unknown}" \
-        "${substate:-unknown}"
-
-    case "$state" in
-        failed)
-            FAILED=1
-            ;;
-    esac
-done < "$UNIT_MANIFEST"
-
-echo
-echo "Containers"
-echo "----------"
-
-podman ps \
-    --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' \
-    || true
-
-echo
-echo "Pods"
-echo "----"
-
-podman pod ps \
-    --format 'table {{.Name}}\t{{.Status}}\t{{.Created}}' \
-    || true
-
-echo
-echo "Failed units"
-echo "------------"
-
-FOUND_FAILED=false
-
-while IFS= read -r unit; do
-    [[ -n "$unit" ]] || continue
-
-    if [[ "$(systemctl is-failed "$unit" 2>/dev/null || true)" == "failed" ]]; then
-        echo "$unit"
-        FOUND_FAILED=true
+    if ! systemctl cat "${unit}" >/dev/null 2>&1; then
+        printf 'not installed'
+        return
     fi
-done < "$UNIT_MANIFEST"
 
-if ! $FOUND_FAILED; then
-    echo "None"
+    systemctl is-active "${unit}" 2>/dev/null || true
+}
+
+network_status() {
+    local network="$1"
+
+    if podman network exists "${network}" 2>/dev/null; then
+        printf 'present'
+    else
+        printf 'not installed'
+    fi
+}
+
+printf 'Cloud Stack\n'
+printf '===========\n\n'
+
+printf 'Host\n'
+printf '%s\n' '----'
+
+if [[ -r /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    source /etc/os-release
+    printf 'OS:               %s\n' "${PRETTY_NAME:-unknown}"
 fi
 
-echo
+printf 'Virtualization:   %s\n' \
+    "$(systemd-detect-virt --container 2>/dev/null || printf 'none')"
 
-if (( FAILED )); then
-    exit 1
+if command -v podman >/dev/null 2>&1; then
+    printf 'Podman:           %s\n' "$(podman --version)"
+    printf 'Mode:             %s\n' \
+        "$(podman info --format '{{if .Host.Security.Rootless}}rootless{{else}}rootful{{end}}')"
+    printf 'Storage:          %s\n' \
+        "$(podman info --format '{{.Store.GraphDriverName}}')"
+    printf 'cgroup:           %s\n' \
+        "$(podman info --format '{{.Host.CgroupsVersion}}')"
+else
+    printf 'Podman:           not installed\n'
+fi
+
+printf '\nStack\n'
+printf '%s\n' '-----'
+printf 'Version:          %s\n' "${VERSION}"
+printf 'Repository:       %s\n' "${ROOT}"
+printf 'Configuration:    /etc/cloudstack\n'
+printf 'Quadlets:         /etc/containers/systemd\n'
+printf 'State:            /var/lib/cloudstack\n'
+
+printf '\nNetworks\n'
+printf '%s\n' '--------'
+printf '%-24s %s\n' 'cloudstack-edge' "$(network_status cloudstack-edge)"
+printf '%-24s %s\n' 'cloudstack-data' "$(network_status cloudstack-data)"
+
+printf '\nServices\n'
+printf '%s\n' '--------'
+printf '%-34s %s\n' \
+    'Edge network' \
+    "$(service_status cloudstack-edge-network.service)"
+
+printf '%-34s %s\n' \
+    'Data network' \
+    "$(service_status cloudstack-data-network.service)"
+
+printf '%-34s %s\n' \
+    'Traefik' \
+    "$(service_status cloudstack-core-traefik.service)"
+
+printf '%-34s %s\n' \
+    'PostgreSQL' \
+    "$(service_status cloudstack-data-postgres.service)"
+
+printf '\nContainers\n'
+printf '%s\n' '----------'
+
+containers="$(
+    podman ps -a \
+        --filter 'name=cloudstack-' \
+        --format 'table {{.Names}}\t{{.Status}}' \
+        2>/dev/null || true
+)"
+
+if [[ -n "${containers}" ]]; then
+    printf '%s\n' "${containers}"
+else
+    printf 'None\n'
+fi
+
+printf '\nVolumes\n'
+printf '%s\n' '-------'
+
+volumes="$(
+    podman volume ls \
+        --filter 'name=cloudstack-' \
+        --format '{{.Name}}' \
+        2>/dev/null || true
+)"
+
+if [[ -n "${volumes}" ]]; then
+    printf '%s\n' "${volumes}"
+else
+    printf 'None\n'
 fi

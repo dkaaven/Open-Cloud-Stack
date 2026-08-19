@@ -14,7 +14,16 @@ die() {
     exit 1
 }
 
-[[ "${EUID}" -eq 0 ]] || die "Run as root."
+if [[ "${EUID}" -ne 0 ]]; then
+    cat >&2 <<'EOF'
+Cloud Stack installation requires root privileges.
+
+Run:
+
+  curl -fsSL https://raw.githubusercontent.com/dkaaven/Open-Cloud-Stack/main/runtime/bootstrap.sh | sudo bash
+EOF
+    exit 1
+fi
 
 [[ -r /etc/os-release ]] || die "/etc/os-release not found."
 
