@@ -111,6 +111,28 @@ resolve_secrets() {
         --secrets
 }
 
+check_required_secrets() {
+    local secret
+    local missing=0
+
+    while IFS= read -r secret; do
+        [[ -n "${secret}" ]] || continue
+
+        local source="${SECRETS_ROOT}/${secret}"
+
+        if [[ ! -f "${source}" ]]; then
+            printf '[cloudstack] Missing secret: %s\n' "${source}" >&2
+            missing=1
+        elif [[ ! -r "${source}" ]]; then
+            printf '[cloudstack] Secret is not readable: %s\n' "${source}" >&2
+            missing=1
+        fi
+    done < <(resolve_secrets)
+
+    (( missing == 0 )) || \
+        fail "Required secrets are missing. No changes were made."
+}
+
 prepare_secrets() {
     local secret
 
@@ -119,16 +141,40 @@ prepare_secrets() {
 
         local source="${SECRETS_ROOT}/${secret}"
 
-        [[ -f "${source}" ]] || \
-            fail "Required secret is missing: ${source}"
-
         if podman secret inspect "${secret}" >/dev/null 2>&1; then
-            log "Podman secret already exists: ${secret}"
+            log "Refreshing Podman secret: ${secret}"
+            podman secret rm "${secret}" >/dev/null || \
+                fail "Unable to remove existing Podman secret: ${secret}"
         else
             log "Creating Podman secret: ${secret}"
-            podman secret create "${secret}" "${source}" >/dev/null
         fi
+
+        podman secret create "${secret}" "${source}" >/dev/null || \
+            fail "Unable to create Podman secret: ${secret}"
     done < <(resolve_secrets)
+}
+
+stop_installed_workloads() {
+    [[ -s "${WORKLOAD_MANIFEST}" ]] || return 0
+
+    local unit
+
+    log "Stopping installed workloads..."
+
+    while IFS= read -r unit; do
+        [[ -n "${unit}" ]] || continue
+
+        if systemctl cat "${unit}" >/dev/null 2>&1; then
+            log "Stopping workload: ${unit}"
+
+            systemctl stop "${unit}" || \
+                fail "Unable to stop workload cleanly: ${unit}"
+
+            if systemctl is-active --quiet "${unit}"; then
+                fail "Workload is still active after stop: ${unit}"
+            fi
+        fi
+    done < "${WORKLOAD_MANIFEST}"
 }
 
 remove_old_workload_dropins() {
@@ -271,13 +317,11 @@ reconcile_resources() {
 
         log "Reconciling resource: ${unit}"
 
-        if ! systemctl restart "${unit}"; then
+        systemctl restart "${unit}" || \
             fail "Resource reconciliation failed: ${unit}"
-        fi
 
-        if ! systemctl is-active --quiet "${unit}"; then
+        systemctl is-active --quiet "${unit}" || \
             fail "Resource unit is not active after reconciliation: ${unit}"
-        fi
     done < "${RESOURCE_MANIFEST}"
 }
 
@@ -296,13 +340,20 @@ main() {
 
     mapfile -t modules <<< "${resolved}"
 
+    # Preflight before touching the currently installed stack.
+    check_required_secrets
+
     log "Installing profile: ${PROFILE}"
     log "Repository: ${REPO_ROOT}"
 
     if systemctl cat cloudstack.target >/dev/null 2>&1; then
-        log "Stopping existing Cloud Stack workloads..."
+        log "Stopping existing Cloud Stack target..."
         systemctl stop cloudstack.target >/dev/null 2>&1 || true
     fi
+
+    # A propagated target stop is not sufficient as an installer barrier.
+    # Explicitly stop each recorded workload and wait for Podman cleanup.
+    stop_installed_workloads
 
     remove_old_workload_dropins
 
