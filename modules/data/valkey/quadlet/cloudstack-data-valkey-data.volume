@@ -1,0 +1,9 @@
+[Unit]
+Description=Cloud Stack Valkey data
+
+[Volume]
+VolumeName=cloudstack-data-valkey-data
+Label=io.cloudstack.module=data/valkey
+Label=io.cloudstack.storage=data
+User=999
+Group=1000

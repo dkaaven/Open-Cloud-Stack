@@ -3,3 +3,4 @@ id: platform
 modules:
   - core/traefik
   - data/postgres
+  - data/valkey

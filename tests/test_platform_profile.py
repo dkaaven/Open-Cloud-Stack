@@ -29,7 +29,7 @@ def run_resolver(*extra: str) -> list[str]:
     return [line for line in result.stdout.splitlines() if line]
 
 
-def test_platform_profile_selects_ingress_and_postgres():
+def test_platform_profile_selects_shared_platform_services():
     with PROFILE.open(encoding="utf-8") as file:
         profile = yaml.safe_load(file)
 
@@ -39,6 +39,7 @@ def test_platform_profile_selects_ingress_and_postgres():
         "modules": [
             "core/traefik",
             "data/postgres",
+            "data/valkey",
         ],
     }
 
@@ -48,10 +49,12 @@ def test_platform_profile_resolves_dependency_order():
         "core/network",
         "core/traefik",
         "data/postgres",
+        "data/valkey",
     ]
 
 
-def test_platform_profile_requires_postgres_secret():
+def test_platform_profile_resolves_required_secrets():
     assert run_resolver("--secrets") == [
         "postgres-superuser-password",
+        "valkey-password",
     ]

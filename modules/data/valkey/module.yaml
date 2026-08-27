@@ -1,22 +1,20 @@
 schema: 1
-
 id: data/valkey
 name: Valkey
-description: Shared Valkey service.
-
+description: Shared Redis-compatible cache and distributed locking service.
 stateful: true
-
 requires:
   - core/network
-
-provides: []
-secrets: []
-
+provides:
+  - cache
+secrets:
+  - valkey-password
 networks:
   - data
-
 storage:
   - id: data
     backup: false
-
-images: []
+images:
+  - id: valkey
+    version: 9.1.1-alpine
+    reference: docker.io/valkey/valkey@sha256:ee91f7a174ac4d6a6b0685b3a60e321f0a9dbbb691f9b0e285be2ba1d1be8328

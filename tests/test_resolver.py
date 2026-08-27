@@ -53,8 +53,8 @@ def test_workplace_profile_resolves_full_dependency_graph():
 def test_workplace_profile_resolves_required_secrets():
     assert resolve("workplace", "--secrets") == [
         "postgres-superuser-password",
+        "valkey-password",
     ]
-
 
 def test_missing_profile_fails_cleanly():
     result = subprocess.run(
