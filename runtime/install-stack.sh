@@ -111,6 +111,25 @@ resolve_secrets() {
         --secrets
 }
 
+check_module_host_requirements() {
+    local module_id
+    local check
+
+    for module_id in "$@"; do
+        check="${REPO_ROOT}/modules/${module_id}/health/check-host.sh"
+
+        [[ -f "${check}" ]] || continue
+
+        [[ -x "${check}" ]] || \
+            fail "Host requirement check is not executable: ${check}"
+
+        log "Checking host requirements: ${module_id}"
+
+        "${check}" || \
+            fail "Host requirement check failed for module: ${module_id}. No changes were made."
+    done
+}
+
 check_required_secrets() {
     local secret
     local missing=0
@@ -341,6 +360,7 @@ main() {
     mapfile -t modules <<< "${resolved}"
 
     # Preflight before touching the currently installed stack.
+    check_module_host_requirements "${modules[@]}"
     check_required_secrets
 
     log "Installing profile: ${PROFILE}"
