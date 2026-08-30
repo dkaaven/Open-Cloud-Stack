@@ -1,0 +1,7 @@
+[Unit]
+Description=Cloud Stack Nextcloud data
+
+[Volume]
+VolumeName=cloudstack-workplace-nextcloud-data
+Label=io.cloudstack.module=workplace/nextcloud
+Label=io.cloudstack.storage=data

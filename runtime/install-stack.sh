@@ -130,6 +130,48 @@ check_module_host_requirements() {
     done
 }
 
+run_module_configure() {
+    local module_id="$1"
+    local mode="$2"
+    local hook="${REPO_ROOT}/modules/${module_id}/configure.sh"
+
+    [[ -f "${hook}" ]] || return 0
+
+    [[ -x "${hook}" ]] || \
+        fail "Module configure hook is not executable: ${hook}"
+
+    CLOUDSTACK_REPO_ROOT="${REPO_ROOT}" \
+    CLOUDSTACK_CONFIG_ROOT="/etc/cloudstack" \
+    CLOUDSTACK_MODULE_ID="${module_id}" \
+        "${hook}" "${mode}"
+}
+
+check_module_configuration() {
+    local module_id
+
+    for module_id in "$@"; do
+        if [[ -f "${REPO_ROOT}/modules/${module_id}/configure.sh" ]]; then
+            log "Checking module configuration: ${module_id}"
+
+            run_module_configure "${module_id}" --check || \
+                fail "Module configuration check failed: ${module_id}. No changes were made."
+        fi
+    done
+}
+
+configure_modules() {
+    local module_id
+
+    for module_id in "$@"; do
+        if [[ -f "${REPO_ROOT}/modules/${module_id}/configure.sh" ]]; then
+            log "Configuring module: ${module_id}"
+
+            run_module_configure "${module_id}" --apply || \
+                fail "Module configuration failed: ${module_id}"
+        fi
+    done
+}
+
 check_required_secrets() {
     local secret
     local missing=0
@@ -361,6 +403,7 @@ main() {
 
     # Preflight before touching the currently installed stack.
     check_module_host_requirements "${modules[@]}"
+    check_module_configuration "${modules[@]}"
     check_required_secrets
 
     log "Installing profile: ${PROFILE}"
@@ -398,6 +441,7 @@ main() {
         install_module "${module_id}"
     done
 
+    configure_modules "${modules[@]}"
     prepare_secrets
 
     sort -u "${TMP_UNITS}" > "${UNIT_MANIFEST}"

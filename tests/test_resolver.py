@@ -54,6 +54,8 @@ def test_workplace_profile_resolves_required_secrets():
     assert resolve("workplace", "--secrets") == [
         "postgres-superuser-password",
         "valkey-password",
+        "nextcloud-db-password",
+        "nextcloud-admin-password",
     ]
 
 def test_missing_profile_fails_cleanly():

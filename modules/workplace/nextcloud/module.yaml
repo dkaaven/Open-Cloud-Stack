@@ -12,8 +12,12 @@ requires:
   - data/postgres
   - data/valkey
 
-provides: []
-secrets: []
+provides:
+  - files
+
+secrets:
+  - nextcloud-db-password
+  - nextcloud-admin-password
 
 networks:
   - edge
@@ -23,4 +27,7 @@ storage:
   - id: data
     backup: true
 
-images: []
+images:
+  - id: nextcloud
+    version: 34.0.3-apache
+    reference: docker.io/library/nextcloud@sha256:8e5f49801db0cf4659b3089ce1917728023bb8cba7f93731f2abbdfe3a18df0a

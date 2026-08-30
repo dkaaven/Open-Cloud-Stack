@@ -1,0 +1,4 @@
+schema: 1
+database: nextcloud
+role: nextcloud
+password_secret: nextcloud-db-password
