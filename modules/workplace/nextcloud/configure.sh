@@ -78,7 +78,6 @@ TRUSTED_PROXIES=10.0.0.0/8
 OVERWRITEHOST=${host}
 OVERWRITEPROTOCOL=${protocol}
 OVERWRITECLIURL=${protocol}://${host}
-NEXTCLOUD_INIT_HTACCESS=true
 EOF
 
     install -m 0644 \

@@ -191,6 +191,7 @@ def test_nextcloud_configure_renders_runtime_and_route(tmp_path: Path):
 
     assert "Host(`cloud.example.test`)" in route
     assert "http://cloudstack-workplace-nextcloud:80" in route
+    assert "NEXTCLOUD_INIT_HTACCESS" not in runtime_env
 
 
 def test_nextcloud_quadlets_generate(tmp_path: Path):
